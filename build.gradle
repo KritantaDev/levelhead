@@ -1,0 +1,103 @@
+
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+        maven {
+            name = "forge"
+            url = "https://files.minecraftforge.net/maven"
+        }
+        maven {
+            name = "springplugins"
+            url = "https://repo.spring.io/plugins-release/"
+        }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.1.0'
+    }
+}
+
+
+apply from: 'mod.gradle'
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'kotlin'
+
+// this ensures any .java files also get built when in the src/main/kotlin dir
+sourceSets {
+    main.java.srcDirs = ['src/main/kotlin']
+}
+
+version = "0.1.0"
+group = "dev.phoenix"
+archivesBaseName = "LevelHead"
+fullName = "Phoenix LevelHead"
+modid = "levelhead"
+description = "LevelHead using SlothPixel API"
+
+project.sourceCompatibility = '1.8'
+project.targetCompatibility = '1.8'
+
+minecraft {
+
+    version = "1.8.9-11.15.1.1722"
+    runDir = "run"
+
+    mappings = "stable_20"
+
+}
+
+configurations {
+    shade
+    compile.extendsFrom shade
+}
+
+dependencies {
+
+    shade fileTree(include:['*.jar'], dir:"libs")
+    shade 'org.jetbrains.kotlin:kotlin-stdlib:1.1.0'
+    shade 'org.jetbrains.kotlin:kotlin-reflect:1.1.0'
+    shade 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.1.0'
+}
+
+processResources
+        {
+            inputs.property "version", version
+            inputs.property "mcversion", minecraft.version
+            inputs.property "modid", modid
+            inputs.property "name", fullName
+            inputs.property "description", description
+            from(sourceSets.main.resources.srcDirs) {
+                include 'mcmod.info'
+
+                expand 'version': project.version, 'mcversion': project.minecraft.version, 'modid': project.modid, 'name': project.name, 'description': project.description
+            }
+
+        }
+
+jar {
+    configurations.shade.each { dep ->
+        from(project.zipTree(dep)){
+            exclude 'META-INF', 'META-INF/**'
+        }
+    }
+}
+
+task copyCompiledMod(type: Copy) {
+
+    outputs.upToDateWhen { false }
+    from file("$buildDir/libs/$archivesBaseName-${version}.jar")
+    into file("${System.properties['user.home']}/curseforge/minecraft/Instances/Hypixel/mods")
+}
+repositories {
+    mavenCentral()
+}
+
+reobf {
+    jar {
+        // Kotlin+Adapter shading
+        //extraLines += [ "PK: kotlin dev/phoenix/chat/repack/kotlin" ]
+        //extraLines += [ "PK: org/jetbrains/annotations dev/phoenix/chat/repack/annotations" ]
+    }
+}
